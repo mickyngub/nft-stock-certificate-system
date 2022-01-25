@@ -1,10 +1,12 @@
 dependencies:
   - OpenZeppelin/openzeppelin-contracts@4.4.2
+  - gnosis/MultiSigWallet@1.6.0
 
 compiler:
   solc:
     remappings:
       - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.4.2"
+      - "@gnosis=gnosis/MultiSigWallet@1.6.0"
 
 dotenv: .env
 wallets:
