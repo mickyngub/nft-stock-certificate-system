@@ -5,9 +5,7 @@ pragma solidity ^0.8.10;
 /// @title Interface for Stock Certificate System
 /// @dev MultiSigWallet functions and explanations are from @gnosis/MultiSigWallet
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-
-interface ISCS is IERC721 {
+interface ISCS {
   /// @dev MultiSigWallet's event
   event Confirmation(address indexed sender, uint256 indexed transactionId);
   event Revocation(address indexed sender, uint256 indexed transactionId);
@@ -27,7 +25,7 @@ interface ISCS is IERC721 {
   /// @param destination Transaction target address.
   /// @param value Transaction ether value.
   /// @param data Transaction data payload.
-  /// @return transactionId.
+  /// @return transactionId uint256.
 
   function submitTransaction(
     address destination,
