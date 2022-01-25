@@ -21,47 +21,34 @@ interface ISCS is IERC721 {
 
   /// @dev MultiSigWallet's functions
 
-  function MultiSigWallet(address[] _owners, uint256 _required) public;
+  function MultiSigWallet(address[] memory _owners, uint256 _required) external;
 
   /// @dev Allows an owner to submit and confirm a transaction.
   /// @param destination Transaction target address.
   /// @param value Transaction ether value.
   /// @param data Transaction data payload.
-  /// @return Returns transaction ID.
+  /// @return transactionId.
+
   function submitTransaction(
     address destination,
     uint256 value,
     bytes32 data
-  ) public returns (uint256 transactionId);
+  ) external returns (uint256 transactionId);
 
   /// @dev Allows an owner to confirm a transaction.
   /// @param transactionId Transaction ID.
-  function confirmTransaction(uint256 transactionId) public;
+  function confirmTransaction(uint256 transactionId) external;
 
   /// @dev Allows an owner to revoke a confirmation for a transaction.
   /// @param transactionId Transaction ID.
-  function revokeConfirmation(uint256 transactionId) public;
+  function revokeConfirmation(uint256 transactionId) external;
 
   /// @dev Allows anyone to execute a confirmed transaction.
   /// @param transactionId Transaction ID.
-  function executeTransaction(uint256 transactionId) public;
+  function executeTransaction(uint256 transactionId) external;
 
   /// @dev Returns the confirmation status of a transaction.
   /// @param transactionId Transaction ID.
   /// @return Confirmation status.
-  function isConfirmed(uint256 transactionId) public pure returns (bool);
-
-  /*
-   * Internal functions
-   */
-  /// @dev Adds a new transaction to the transaction mapping, if transaction does not exist yet.
-  /// @param destination Transaction target address.
-  /// @param value Transaction ether value.
-  /// @param data Transaction data payload.
-  /// @return Returns transaction ID.
-  function addTransaction(
-    address destination,
-    uint256 value,
-    bytes32 data
-  ) internal returns (uint256 transactionId);
+  function isConfirmed(uint256 transactionId) external pure returns (bool);
 }
