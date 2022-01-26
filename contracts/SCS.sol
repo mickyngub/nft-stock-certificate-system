@@ -2,16 +2,29 @@
 
 pragma solidity ^0.8.10;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./MultiSigWallet.sol";
 
-contract SCS is ERC721Enumerable {
-  using Strings for uint256;
+contract SCS is ERC1155Supply, ERC1155Burnable {
+  struct StockCertificate {
+    string companyName;
+    address owner;
+    uint256 id;
+    uint256 amount;
+  }
+
+  struct Company {
+    string companyName;
+    uint256 foundingDate;
+    uint256 originalNumberOfShares;
+    uint256 currentNumberOfShares;
+    uint256 requiredConfirmation;
+    address[] ownerAddress;
+  }
+
   MultiSigWallet public mSig;
-  uint256 public immutable foundingDate;
-  uint256 public immutable originalNumberOfShares;
-  uint256 public numberOfShares;
 
   constructor(
     string memory _companyName,
@@ -23,5 +36,6 @@ contract SCS is ERC721Enumerable {
     mSig = new MultiSigWallet(_owners, _owners.length);
     foundingDate = _foundingDate;
     originalNumberOfShares = _originalNumberOfShares;
+    _safeMint(mSig, _originalNumberOfShares);
   }
 }
