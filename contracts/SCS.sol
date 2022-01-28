@@ -5,14 +5,14 @@ pragma solidity ^0.8.10;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 contract SCS is ERC721Enumerable {
-  event SubmitTransaction(
+  event InitiateMintStock(
     address indexed owner,
     uint256 indexed txIndex,
     uint256 amount
   );
-  event ConfirmTransaction(address indexed owner, uint256 indexed txIndex);
-  event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
-  event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
+  event VoteMintStock(address indexed owner, uint256 indexed txIndex);
+  event RevokeVoteMintStock(address indexed owner, uint256 indexed txIndex);
+  event ExecuteMintStock(address indexed owner, uint256 indexed txIndex);
 
   struct StockCertificate {
     string companyName;
@@ -93,7 +93,7 @@ contract SCS is ERC721Enumerable {
     return false;
   }
 
-  function submitTransaction(address _to, uint256 _amount) public onlyOwner {
+  function initiateMintStock(address _to, uint256 _amount) public onlyOwner {
     txId += 1;
 
     transaction[txId].amount = _amount;
@@ -101,10 +101,10 @@ contract SCS is ERC721Enumerable {
     transaction[txId].numConfirmations = 0;
     transaction[txId].to = _to;
 
-    emit SubmitTransaction(msg.sender, txId, _amount);
+    emit InitiateMintStock(msg.sender, txId, _amount);
   }
 
-  function confirmTransaction(uint256 _txIndex)
+  function voteMintStock(uint256 _txIndex)
     public
     onlyOwner
     txExists(_txIndex)
@@ -114,10 +114,10 @@ contract SCS is ERC721Enumerable {
     transaction[_txIndex].numConfirmations += 1;
     transaction[_txIndex].isConfirmed[msg.sender] = true;
 
-    emit ConfirmTransaction(msg.sender, _txIndex);
+    emit VoteMintStock(msg.sender, _txIndex);
   }
 
-  function executeTransaction(uint256 _txIndex)
+  function executeMintStock(uint256 _txIndex)
     public
     onlyOwner
     txExists(_txIndex)
@@ -130,10 +130,10 @@ contract SCS is ERC721Enumerable {
 
     transaction[_txIndex].executed = true;
 
-    emit ExecuteTransaction(msg.sender, _txIndex);
+    emit ExecuteMintStock(msg.sender, _txIndex);
   }
 
-  function revokeConfirmation(uint256 _txIndex)
+  function revokeVoteMintStock(uint256 _txIndex)
     public
     onlyOwner
     txExists(_txIndex)
@@ -147,8 +147,6 @@ contract SCS is ERC721Enumerable {
     transaction[_txIndex].numConfirmations -= 1;
     transaction[_txIndex].isConfirmed[msg.sender] = false;
 
-    emit RevokeConfirmation(msg.sender, _txIndex);
+    emit RevokeVoteMintStock(msg.sender, _txIndex);
   }
-
-  function issueStock() public {}
 }
