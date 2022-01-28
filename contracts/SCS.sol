@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.10;
 
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-contract SCS is ERC1155Supply {
+contract SCS is ERC721Enumerable {
   event SubmitTransaction(
     address indexed owner,
     string indexed companyName,
@@ -75,7 +75,9 @@ contract SCS is ERC1155Supply {
     _;
   }
 
-  constructor() ERC1155("") {}
+  constructor(string memory _companyName, string memory _companySymbol)
+    ERC721(_companyName, _companySymbol)
+  {}
 
   function isOwner(string memory _companyName) public view returns (bool) {
     Company storage c = companyList[_companyName];
