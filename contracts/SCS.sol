@@ -36,13 +36,12 @@ contract SCS is ERC721Enumerable {
 
   struct Company {
     string companyName;
+    string companySymbol;
     uint256 foundingDate;
     uint256 originalNumberOfShares;
     uint256 currentNumberOfShares;
     uint256 requiredConfirmation;
     address[] ownerAddress;
-    uint256[] stockCertificates;
-    Transaction[] transactions;
   }
 
   struct Transaction {
@@ -53,7 +52,11 @@ contract SCS is ERC721Enumerable {
     mapping(address => bool) isConfirmed;
   }
 
-  mapping(string => Company) public companyList;
+  // mapping(address => Company) public companies;
+  Company public company;
+  uint256 txId;
+  mapping(uint256 => Transaction) public transaction;
+  mapping(uint256 => StockCertificate) public stockCertificateId;
 
   modifier onlyOwner(string memory _companyName) {
     require(isOwner(_companyName), "not one of the owners");
@@ -61,28 +64,47 @@ contract SCS is ERC721Enumerable {
   }
 
   modifier txExists(string memory _companyName, uint256 _txIndex) {
-    require(isTx(_companyName, _txIndex), "tx DNE");
+    require(isTx(_companyName, _txIndex), "transaction DNE");
     _;
   }
 
   modifier notExecuted(string memory _companyName, uint256 _txIndex) {
-    require(!hasExecuted(_companyName, _txIndex), "tx already executed");
+    require(
+      !hasExecuted(_companyName, _txIndex),
+      "transaction already executed"
+    );
     _;
   }
 
   modifier notConfirmed(string memory _companyName, uint256 _txIndex) {
-    require(!hasConfirmed(_companyName, _txIndex), "tx already confirmed");
+    require(
+      !hasConfirmed(_companyName, _txIndex),
+      "transaction already confirmed"
+    );
     _;
   }
 
-  constructor(string memory _companyName, string memory _companySymbol)
-    ERC721(_companyName, _companySymbol)
-  {}
+  constructor(
+    string memory _companyName,
+    string memory _companySymbol,
+    uint256 _foundingDate,
+    uint256 _originalNumberOfShares,
+    uint256 _requiredConfirmation,
+    address[] memory _ownerAddress
+  ) ERC721(_companyName, _companySymbol) {
+    company.companyName = _companyName;
+    company.companySymbol = _companySymbol;
+    company.foundingDate = _foundingDate;
+    // both original and current are equal when the company is created
+    company.originalNumberOfShares = _originalNumberOfShares;
+    company.currentNumberOfShares = _originalNumberOfShares;
+    company.requiredConfirmation = _requiredConfirmation;
+    company.ownerAddress = _ownerAddress;
+  }
 
   function isOwner(string memory _companyName) public view returns (bool) {
-    Company storage c = companyList[_companyName];
-    for (uint256 i = 0; i < c.ownerAddress.length; i++) {
-      if (c.ownerAddress[i] == msg.sender) return true;
+    for (uint256 i = 0; i < company.ownerAddress.length; i++) {
+      if (company.ownerAddress[i] == msg.sender) return true;
     }
     return false;
   }
@@ -92,8 +114,7 @@ contract SCS is ERC721Enumerable {
     view
     returns (bool)
   {
-    Company storage c = companyList[_companyName];
-    if (_txIndex < c.transactions.length) return true;
+    if (_txIndex <= txId) return true;
     return false;
   }
 
@@ -102,8 +123,7 @@ contract SCS is ERC721Enumerable {
     view
     returns (bool)
   {
-    Company storage c = companyList[_companyName];
-    if (c.transactions[_txIndex].executed) return true;
+    if (transaction[_txIndex].executed) return true;
     return false;
   }
 
@@ -112,8 +132,7 @@ contract SCS is ERC721Enumerable {
     view
     returns (bool)
   {
-    Company storage c = companyList[_companyName];
-    if (c.transactions[_txIndex].isConfirmed[msg.sender]) return true;
+    if (transaction[_txIndex].isConfirmed[msg.sender]) return true;
     return false;
   }
 
@@ -122,15 +141,14 @@ contract SCS is ERC721Enumerable {
     uint256 _amount,
     string memory _companyName
   ) public onlyOwner(_companyName) {
-    Company storage c = companyList[_companyName];
-    uint256 txIndex = c.transactions.length;
+    txId += 1;
 
-    c.transactions[txIndex].amount = _amount;
-    c.transactions[txIndex].executed = false;
-    c.transactions[txIndex].numConfirmations = 0;
-    c.transactions[txIndex].to = _to;
+    transaction[txId].amount = _amount;
+    transaction[txId].executed = false;
+    transaction[txId].numConfirmations = 0;
+    transaction[txId].to = _to;
 
-    emit SubmitTransaction(msg.sender, _companyName, txIndex, _amount);
+    emit SubmitTransaction(msg.sender, _companyName, txId, _amount);
   }
 
   function confirmTransaction(string memory _companyName, uint256 _txIndex)
@@ -140,10 +158,8 @@ contract SCS is ERC721Enumerable {
     notExecuted(_companyName, _txIndex)
     notConfirmed(_companyName, _txIndex)
   {
-    Company storage c = companyList[_companyName];
-    Transaction storage transaction = c.transactions[_txIndex];
-    transaction.numConfirmations += 1;
-    transaction.isConfirmed[msg.sender] = true;
+    transaction[_txIndex].numConfirmations += 1;
+    transaction[_txIndex].isConfirmed[msg.sender] = true;
 
     emit ConfirmTransaction(msg.sender, _companyName, _txIndex);
   }
@@ -154,15 +170,12 @@ contract SCS is ERC721Enumerable {
     txExists(_companyName, _txIndex)
     notExecuted(_companyName, _txIndex)
   {
-    Company storage c = companyList[_companyName];
-    Transaction storage transaction = c.transactions[_txIndex];
-
     require(
-      transaction.numConfirmations >= c.requiredConfirmation,
-      "cannot execute tx"
+      transaction[_txIndex].numConfirmations >= company.requiredConfirmation,
+      "cannot execute transaction"
     );
 
-    transaction.executed = true;
+    transaction[_txIndex].executed = true;
 
     emit ExecuteTransaction(msg.sender, _companyName, _txIndex);
   }
@@ -173,39 +186,15 @@ contract SCS is ERC721Enumerable {
     txExists(_companyName, _txIndex)
     notExecuted(_companyName, _txIndex)
   {
-    Company storage c = companyList[_companyName];
-    Transaction storage transaction = c.transactions[_txIndex];
-
-    require(hasConfirmed(_companyName, _txIndex), "tx has not confirmed");
-
-    transaction.numConfirmations -= 1;
-    transaction.isConfirmed[msg.sender] = true;
-
-    emit RevokeConfirmation(msg.sender, _companyName, _txIndex);
-  }
-
-  function createCompany(
-    string memory _companyName,
-    uint256 _foundingDate,
-    uint256 _originalNumberOfShares,
-    uint256 _requiredConfirmation,
-    address[] memory _ownerAddress
-  ) public {
-    require(_ownerAddress.length > 0, "company needs owner");
-    require(_originalNumberOfShares > 0, "need more than 0 shares");
     require(
-      _requiredConfirmation > 0 &&
-        _requiredConfirmation <= _ownerAddress.length,
-      "need confirmation"
+      hasConfirmed(_companyName, _txIndex),
+      "transaction has not confirmed"
     );
 
-    Company storage c = companyList[_companyName];
-    c.companyName = _companyName;
-    c.foundingDate = _foundingDate;
-    c.originalNumberOfShares = _originalNumberOfShares;
-    c.currentNumberOfShares = _originalNumberOfShares;
-    c.requiredConfirmation = _requiredConfirmation;
-    c.ownerAddress = _ownerAddress;
+    transaction[_txIndex].numConfirmations -= 1;
+    transaction[_txIndex].isConfirmed[msg.sender] = false;
+
+    emit RevokeConfirmation(msg.sender, _companyName, _txIndex);
   }
 
   function issueStock() public {}
