@@ -41,7 +41,7 @@ contract SCS is ERC721Enumerable {
 
   // mapping(address => Company) public companies;
   Company public company;
-  uint256 txId;
+  uint256 public txId;
   mapping(uint256 => Transaction) public transaction;
   mapping(uint256 => StockCertificate) public stockCertificateId;
 
