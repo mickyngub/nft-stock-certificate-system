@@ -4,9 +4,19 @@ pragma solidity ^0.8.10;
 import "./SCS.sol";
 
 contract SCSFactory {
+  SCS public scs;
+
   mapping(string => address) public listCompanyAddress;
 
   constructor() {}
+
+  modifier companyNotExists(string memory _companyName) {
+    require(
+      listCompanyAddress[_companyName] == address(0),
+      "company already exists"
+    );
+    _;
+  }
 
   function createCompany(
     string memory _companyName,
@@ -15,7 +25,7 @@ contract SCSFactory {
     uint256 _originalNumberOfShares,
     uint256 _requiredConfirmation,
     address[] memory _ownerAddress
-  ) public returns (SCS companyAddress) {
+  ) public companyNotExists(_companyName) returns (SCS companyAddress) {
     require(_ownerAddress.length > 0, "company needs owner");
     require(_originalNumberOfShares > 0, "need more than 0 shares");
     require(
@@ -34,13 +44,36 @@ contract SCSFactory {
     );
 
     listCompanyAddress[_companyName] = address(companyAddress);
+  }
 
-    // Company storage c = companyList[_companyName];
-    // c.companyName = _companyName;
-    // c.foundingDate = _foundingDate;
-    // c.originalNumberOfShares = _originalNumberOfShares;
-    // c.currentNumberOfShares = _originalNumberOfShares;
-    // c.requiredConfirmation = _requiredConfirmation;
-    // c.ownerAddress = _ownerAddress;
+  function getCompanyInfo(string memory _companyName)
+    public
+    returns (
+      string memory,
+      string memory,
+      uint256,
+      uint256,
+      uint256,
+      uint256
+    )
+  {
+    address companyAddress = listCompanyAddress[_companyName];
+    scs = SCS(companyAddress);
+    (
+      string memory companyName,
+      string memory companySymbol,
+      uint256 foundingDate,
+      uint256 originalNumberOfShares,
+      uint256 currentNumberOfShares,
+      uint256 requiredConfirmation
+    ) = scs.company();
+    return (
+      companyName,
+      companySymbol,
+      foundingDate,
+      originalNumberOfShares,
+      currentNumberOfShares,
+      requiredConfirmation
+    );
   }
 }
