@@ -10,21 +10,9 @@ contract SCS is ERC721Enumerable {
     uint256 indexed txIndex,
     uint256 amount
   );
-  event ConfirmTransaction(
-    address indexed owner,
-    string indexed companyName,
-    uint256 indexed txIndex
-  );
-  event RevokeConfirmation(
-    address indexed owner,
-    string indexed companyName,
-    uint256 indexed txIndex
-  );
-  event ExecuteTransaction(
-    address indexed owner,
-    string indexed companyName,
-    uint256 indexed txIndex
-  );
+  event ConfirmTransaction(address indexed owner, uint256 indexed txIndex);
+  event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
+  event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
 
   struct StockCertificate {
     string companyName;
@@ -62,22 +50,19 @@ contract SCS is ERC721Enumerable {
     _;
   }
 
-  modifier txExists(string memory _companyName, uint256 _txIndex) {
-    require(isTx(_companyName, _txIndex), "transaction DNE");
+  modifier txExists(uint256 _txIndex) {
+    require(_txIndex <= txId, "transaction DNE");
     _;
   }
 
-  modifier notExecuted(string memory _companyName, uint256 _txIndex) {
-    require(
-      !hasExecuted(_companyName, _txIndex),
-      "transaction already executed"
-    );
+  modifier notExecuted(uint256 _txIndex) {
+    require(!transaction[_txIndex].executed, "transaction already executed");
     _;
   }
 
-  modifier notConfirmed(string memory _companyName, uint256 _txIndex) {
+  modifier notConfirmed(uint256 _txIndex) {
     require(
-      !hasConfirmed(_companyName, _txIndex),
+      !transaction[_txIndex].isConfirmed[msg.sender],
       "transaction already confirmed"
     );
     _;
@@ -108,33 +93,6 @@ contract SCS is ERC721Enumerable {
     return false;
   }
 
-  function isTx(string memory _companyName, uint256 _txIndex)
-    internal
-    view
-    returns (bool)
-  {
-    if (_txIndex <= txId) return true;
-    return false;
-  }
-
-  function hasExecuted(string memory _companyName, uint256 _txIndex)
-    internal
-    view
-    returns (bool)
-  {
-    if (transaction[_txIndex].executed) return true;
-    return false;
-  }
-
-  function hasConfirmed(string memory _companyName, uint256 _txIndex)
-    internal
-    view
-    returns (bool)
-  {
-    if (transaction[_txIndex].isConfirmed[msg.sender]) return true;
-    return false;
-  }
-
   function submitTransaction(address _to, uint256 _amount) public onlyOwner {
     txId += 1;
 
@@ -146,24 +104,24 @@ contract SCS is ERC721Enumerable {
     emit SubmitTransaction(msg.sender, txId, _amount);
   }
 
-  function confirmTransaction(string memory _companyName, uint256 _txIndex)
+  function confirmTransaction(uint256 _txIndex)
     public
     onlyOwner
-    txExists(_companyName, _txIndex)
-    notExecuted(_companyName, _txIndex)
-    notConfirmed(_companyName, _txIndex)
+    txExists(_txIndex)
+    notExecuted(_txIndex)
+    notConfirmed(_txIndex)
   {
     transaction[_txIndex].numConfirmations += 1;
     transaction[_txIndex].isConfirmed[msg.sender] = true;
 
-    emit ConfirmTransaction(msg.sender, _companyName, _txIndex);
+    emit ConfirmTransaction(msg.sender, _txIndex);
   }
 
-  function executeTransaction(string memory _companyName, uint256 _txIndex)
+  function executeTransaction(uint256 _txIndex)
     public
     onlyOwner
-    txExists(_companyName, _txIndex)
-    notExecuted(_companyName, _txIndex)
+    txExists(_txIndex)
+    notExecuted(_txIndex)
   {
     require(
       transaction[_txIndex].numConfirmations >= company.requiredConfirmation,
@@ -172,24 +130,24 @@ contract SCS is ERC721Enumerable {
 
     transaction[_txIndex].executed = true;
 
-    emit ExecuteTransaction(msg.sender, _companyName, _txIndex);
+    emit ExecuteTransaction(msg.sender, _txIndex);
   }
 
-  function revokeConfirmation(string memory _companyName, uint256 _txIndex)
+  function revokeConfirmation(uint256 _txIndex)
     public
     onlyOwner
-    txExists(_companyName, _txIndex)
-    notExecuted(_companyName, _txIndex)
+    txExists(_txIndex)
+    notExecuted(_txIndex)
   {
     require(
-      hasConfirmed(_companyName, _txIndex),
+      transaction[_txIndex].isConfirmed[msg.sender],
       "transaction has not confirmed"
     );
 
     transaction[_txIndex].numConfirmations -= 1;
     transaction[_txIndex].isConfirmed[msg.sender] = false;
 
-    emit RevokeConfirmation(msg.sender, _companyName, _txIndex);
+    emit RevokeConfirmation(msg.sender, _txIndex);
   }
 
   function issueStock() public {}
