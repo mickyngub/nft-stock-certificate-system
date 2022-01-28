@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 contract SCS is ERC721Enumerable {
   event SubmitTransaction(
     address indexed owner,
-    string indexed companyName,
     uint256 indexed txIndex,
     uint256 amount
   );
@@ -58,8 +57,8 @@ contract SCS is ERC721Enumerable {
   mapping(uint256 => Transaction) public transaction;
   mapping(uint256 => StockCertificate) public stockCertificateId;
 
-  modifier onlyOwner(string memory _companyName) {
-    require(isOwner(_companyName), "not one of the owners");
+  modifier onlyOwner() {
+    require(isOwner(msg.sender), "not one of the owners");
     _;
   }
 
@@ -102,9 +101,9 @@ contract SCS is ERC721Enumerable {
     company.ownerAddress = _ownerAddress;
   }
 
-  function isOwner(string memory _companyName) public view returns (bool) {
+  function isOwner(address sender) public view returns (bool) {
     for (uint256 i = 0; i < company.ownerAddress.length; i++) {
-      if (company.ownerAddress[i] == msg.sender) return true;
+      if (company.ownerAddress[i] == sender) return true;
     }
     return false;
   }
@@ -136,11 +135,7 @@ contract SCS is ERC721Enumerable {
     return false;
   }
 
-  function submitTransaction(
-    address _to,
-    uint256 _amount,
-    string memory _companyName
-  ) public onlyOwner(_companyName) {
+  function submitTransaction(address _to, uint256 _amount) public onlyOwner {
     txId += 1;
 
     transaction[txId].amount = _amount;
@@ -148,12 +143,12 @@ contract SCS is ERC721Enumerable {
     transaction[txId].numConfirmations = 0;
     transaction[txId].to = _to;
 
-    emit SubmitTransaction(msg.sender, _companyName, txId, _amount);
+    emit SubmitTransaction(msg.sender, txId, _amount);
   }
 
   function confirmTransaction(string memory _companyName, uint256 _txIndex)
     public
-    onlyOwner(_companyName)
+    onlyOwner
     txExists(_companyName, _txIndex)
     notExecuted(_companyName, _txIndex)
     notConfirmed(_companyName, _txIndex)
@@ -166,7 +161,7 @@ contract SCS is ERC721Enumerable {
 
   function executeTransaction(string memory _companyName, uint256 _txIndex)
     public
-    onlyOwner(_companyName)
+    onlyOwner
     txExists(_companyName, _txIndex)
     notExecuted(_companyName, _txIndex)
   {
@@ -182,7 +177,7 @@ contract SCS is ERC721Enumerable {
 
   function revokeConfirmation(string memory _companyName, uint256 _txIndex)
     public
-    onlyOwner(_companyName)
+    onlyOwner
     txExists(_companyName, _txIndex)
     notExecuted(_companyName, _txIndex)
   {
