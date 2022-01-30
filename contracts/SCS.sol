@@ -84,6 +84,14 @@ contract SCS is ERC721Enumerable {
     company.currentNumberOfShares = _originalNumberOfShares;
     company.requiredConfirmation = _requiredConfirmation;
     company.ownerAddress = _ownerAddress;
+
+    /// @dev this will always result in even number of stocks for each holder
+    uint256 stockOfEachOwner = _originalNumberOfShares / _ownerAddress.length;
+    for (uint256 i = 0; i < _ownerAddress.length; i++) {
+      for (uint256 j = 0; j < stockOfEachOwner; j++) {
+        _safeMint(_ownerAddress[i], j + (i * stockOfEachOwner));
+      }
+    }
   }
 
   function isOwner(address sender) public view returns (bool) {
